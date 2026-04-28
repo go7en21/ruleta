@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ruleta de Sorteo</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --card-2: #1f2937;
+      --text: #f9fafb;
+      --muted: #cbd5e1;
+      --primary: #38bdf8;
+      --primary-dark: #0284c7;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --border: rgba(255, 255, 255, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.18), transparent 30%),
+        var(--bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(1200px, 100%);
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: rgba(17, 24, 39, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      padding: 24px;
+      backdrop-filter: blur(12px);
+    }
+
+    h1, h2, h3, p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: clamp(28px, 4vw, 46px);
+      margin-bottom: 8px;
+      letter-spacing: -1px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+
+    .wheel-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      min-height: 680px;
+    }
+
+    .wheel-wrap {
+      position: relative;
+      width: min(560px, 90vw);
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+    }
+
+    .pointer {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 24px solid transparent;
+      border-right: 24px solid transparent;
+      border-top: 52px solid #facc15;
+      filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.4));
+      z-index: 5;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow:
+        0 0 0 12px #020617,
+        0 0 0 18px #facc15,
+        0 28px 80px rgba(0, 0, 0, 0.5);
+      transition: transform 5s cubic-bezier(0.12, 0.67, 0.18, 1);
+    }
+
+    .center-button {
+      position: absolute;
+      width: 112px;
+      height: 112px;
+      border-radius: 50%;
+      border: 8px solid #fde68a;
+      background: linear-gradient(145deg, #facc15, #f97316);
+      color: #111827;
+      font-weight: 900;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 4;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    .center-button:hover {
+      transform: scale(1.04);
+      filter: brightness(1.08);
+    }
+
+    .center-button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .result-box {
+      width: 100%;
+      max-width: 560px;
+      background: rgba(31, 41, 55, 0.82);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .result-label {
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .result-name {
+      font-size: clamp(24px, 4vw, 38px);
+      font-weight: 900;
+      color: #facc15;
+      word-break: break-word;
+      min-height: 44px;
+    }
+
+    .controls {
+      display: grid;
+      gap: 14px;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 13px 14px;
+      outline: none;
+      font-size: 15px;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.4;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 13px 16px;
+      color: #fff;
+      background: var(--primary-dark);
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 14px;
+      transition: transform 0.12s ease, filter 0.12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-success { background: var(--success); }
+    .btn-warning { background: var(--warning); color: #111827; }
+    .btn-danger { background: var(--danger); }
+    .btn-ghost { background: rgba(255, 255, 255, 0.12); }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+      margin-bottom: 10px;
+    }
+
+    .count {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .items {
+      display: grid;
+      gap: 8px;
+      max-height: 310px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .item button {
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(239, 68, 68, 0.88);
+    }
+
+    .history {
+      margin-top: 16px;
+      background: rgba(15, 23, 42, 0.62);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .history-list {
+      color: var(--muted);
+      line-height: 1.7;
+      max-height: 150px;
+      overflow: auto;
+      padding-left: 20px;
+      margin-bottom: 0;
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 14px;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .wheel-zone {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel wheel-zone">
+      <div>
+        <h1>Ruleta de Sorteo</h1>
+        <p class="subtitle">Ingresa nombres, números, premios o cualquier dato. La ruleta elegirá un ganador al azar.</p>
+      </div>
+
+      <div class="wheel-wrap">
+        <div class="pointer" aria-hidden="true"></div>
+        <canvas id="wheel" width="900" height="900"></canvas>
+        <button id="spinBtn" class="center-button">GIRAR</button>
+      </div>
+
+      <div class="result-box">
+        <div class="result-label">Resultado seleccionado</div>
+        <div id="result" class="result-name">Sin resultado</div>
+      </div>
+    </section>
+
+    <aside class="panel controls">
+      <div>
+        <h2>Datos para sortear</h2>
+        <p class="subtitle">Puedes agregar uno por uno o pegar varios datos, uno por línea.</p>
+      </div>
+
+      <div class="input-row">
+        <input id="singleInput" type="text" placeholder="Ej: Juan Pérez, Premio 1, Ticket 025" />
+        <button id="addBtn">Agregar</button>
+      </div>
+
+      <textarea id="bulkInput" placeholder="Pega varios datos aquí, uno por línea.&#10;Ej:&#10;Roberto&#10;Justyn&#10;Adip"></textarea>
+
+      <div class="button-grid">
+        <button id="bulkBtn" class="btn-success">Agregar listado</button>
+        <button id="shuffleBtn" class="btn-warning">Mezclar lista</button>
+        <button id="removeWinnerBtn" class="btn-ghost">Eliminar ganador</button>
+        <button id="clearBtn" class="btn-danger">Limpiar todo</button>
+      </div>
+
+      <div class="list-header">
+        <h3>Participantes</h3>
+        <div id="count" class="count">0 datos</div>
+      </div>
+
+      <div id="items" class="items"></div>
+
+      <div class="history">
+        <h3>Historial de ganadores</h3>
+        <ol id="historyList" class="history-list"></ol>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spinBtn');
+    const addBtn = document.getElementById('addBtn');
+    const bulkBtn = document.getElementById('bulkBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const removeWinnerBtn = document.getElementById('removeWinnerBtn');
+    const singleInput = document.getElementById('singleInput');
+    const bulkInput = document.getElementById('bulkInput');
+    const itemsEl = document.getElementById('items');
+    const countEl = document.getElementById('count');
+    const resultEl = document.getElementById('result');
+    const historyList = document.getElementById('historyList');
+
+    const colors = [
+      '#ef4444', '#f97316', '#f59e0b', '#22c55e', '#14b8a6', '#0ea5e9',
+      '#6366f1', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#a855f7'
+    ];
+
+    let entries = JSON.parse(localStorage.getItem('roulette_entries') || '[]');
+    let history = JSON.parse(localStorage.getItem('roulette_history') || '[]');
+    let currentRotation = 0;
+    let isSpinning = false;
+    let lastWinner = null;
+
+    function saveData() {
+      localStorage.setItem('roulette_entries', JSON.stringify(entries));
+      localStorage.setItem('roulette_history', JSON.stringify(history));
+    }
+
+    function normalizeText(value) {
+      return value.trim().replace(/\s+/g, ' ');
+    }
+
+    function addEntry(value) {
+      const clean = normalizeText(value);
+      if (!clean) return;
+      entries.push(clean);
+      saveData();
+      render();
+    }
+
+    function addBulkEntries(text) {
+      const lines = text
+        .split('\n')
+        .map(normalizeText)
+        .filter(Boolean);
+
+      if (!lines.length) return;
+      entries.push(...lines);
+      bulkInput.value = '';
+      saveData();
+      render();
+    }
+
+    function removeEntry(index) {
+      entries.splice(index, 1);
+      if (lastWinner && !entries.includes(lastWinner)) {
+        lastWinner = null;
+      }
+      saveData();
+      render();
+    }
+
+    function shuffleEntries() {
+      for (let i = entries.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [entries[i], entries[j]] = [entries[j], entries[i]];
+      }
+      saveData();
+      render();
+    }
+
+    function clearAll() {
+      const confirmClear = confirm('¿Seguro que deseas limpiar todos los datos y el historial?');
+      if (!confirmClear) return;
+      entries = [];
+      history = [];
+      lastWinner = null;
+      resultEl.textContent = 'Sin resultado';
+      saveData();
+      render();
+    }
+
+    function removeWinner() {
+      if (!lastWinner) {
+        alert('Primero debes girar la ruleta para tener un ganador.');
+        return;
+      }
+
+      const index = entries.indexOf(lastWinner);
+      if (index >= 0) {
+        entries.splice(index, 1);
+        lastWinner = null;
+        saveData();
+        render();
+      }
+    }
+
+    function drawWheel() {
+      const width = canvas.width;
+      const height = canvas.height;
+      const radius = width / 2;
+      const center = radius;
+
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(center, center);
+
+      if (!entries.length) {
+        ctx.beginPath();
+        ctx.arc(0, 0, radius - 18, 0, Math.PI * 2);
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fill();
+        ctx.fillStyle = '#111827';
+        ctx.font = 'bold 44px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Agrega datos', 0, -16);
+        ctx.font = '28px Arial';
+        ctx.fillText('para iniciar el sorteo', 0, 34);
+        ctx.restore();
+        return;
+      }
+
+      const arc = (Math.PI * 2) / entries.length;
+
+      entries.forEach((entry, index) => {
+        const startAngle = index * arc - Math.PI / 2;
+        const endAngle = startAngle + arc;
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius - 18, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[index % colors.length];
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.rotate(startAngle + arc / 2);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+        ctx.shadowBlur = 5;
+        ctx.font = entries.length <= 10 ? 'bold 32px Arial' : entries.length <= 20 ? 'bold 24px Arial' : 'bold 18px Arial';
+
+        const maxText = entries.length <= 12 ? 22 : entries.length <= 24 ? 16 : 10;
+        const text = entry.length > maxText ? entry.slice(0, maxText - 1) + '…' : entry;
+        ctx.fillText(text, radius - 52, 0);
+        ctx.restore();
+      });
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 78, 0, Math.PI * 2);
+      ctx.fillStyle = '#020617';
+      ctx.fill();
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = '#facc15';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 46, 0, Math.PI * 2);
+      ctx.fillStyle = '#facc15';
+      ctx.fill();
+
+      ctx.fillStyle = '#111827';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('★', 0, 2);
+
+      ctx.restore();
+    }
+
+    function renderItems() {
+      countEl.textContent = `${entries.length} ${entries.length === 1 ? 'dato' : 'datos'}`;
+      itemsEl.innerHTML = '';
+
+      if (!entries.length) {
+        itemsEl.innerHTML = '<div class="empty">Aún no hay datos ingresados.</div>';
+        return;
+      }
+
+      entries.forEach((entry, index) => {
+        const div = document.createElement('div');
+        div.className = 'item';
+
+        const span = document.createElement('span');
+        span.textContent = `${index + 1}. ${entry}`;
+
+        const button = document.createElement('button');
+        button.textContent = 'X';
+        button.title = 'Eliminar';
+        button.addEventListener('click', () => removeEntry(index));
+
+        div.appendChild(span);
+        div.appendChild(button);
+        itemsEl.appendChild(div);
+      });
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = '';
+
+      if (!history.length) {
+        const li = document.createElement('li');
+        li.textContent = 'Sin ganadores todavía.';
+        historyList.appendChild(li);
+        return;
+      }
+
+      history.slice().reverse().forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        historyList.appendChild(li);
+      });
+    }
+
+    function render() {
+      drawWheel();
+      renderItems();
+      renderHistory();
+      spinBtn.disabled = isSpinning || entries.length < 2;
+      removeWinnerBtn.disabled = !lastWinner;
+    }
+
+    function spinWheel() {
+      if (isSpinning) return;
+      if (entries.length < 2) {
+        alert('Debes ingresar al menos 2 datos para sortear.');
+        return;
+      }
+
+      isSpinning = true;
+      spinBtn.disabled = true;
+      resultEl.textContent = 'Girando...';
+
+      const winnerIndex = Math.floor(Math.random() * entries.length);
+      const arcDegrees = 360 / entries.length;
+
+      // El puntero está arriba. Calculamos el ángulo final para que el ganador quede bajo el puntero.
+      const targetMiddle = winnerIndex * arcDegrees + arcDegrees / 2;
+      const extraSpins = 360 * (6 + Math.floor(Math.random() * 4));
+      const randomFineTune = (Math.random() - 0.5) * (arcDegrees * 0.35);
+      const finalRotation = currentRotation + extraSpins - targetMiddle + randomFineTune;
+
+      currentRotation = finalRotation;
+      canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+      setTimeout(() => {
+        const winner = entries[winnerIndex];
+        lastWinner = winner;
+        resultEl.textContent = winner;
+        history.push(`${new Date().toLocaleString('es-CL')} — ${winner}`);
+        saveData();
+        isSpinning = false;
+        render();
+      }, 5200);
+    }
+
+    addBtn.addEventListener('click', () => {
+      addEntry(singleInput.value);
+      singleInput.value = '';
+      singleInput.focus();
+    });
+
+    singleInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        addBtn.click();
+      }
+    });
+
+    bulkBtn.addEventListener('click', () => addBulkEntries(bulkInput.value));
+    shuffleBtn.addEventListener('click', shuffleEntries);
+    clearBtn.addEventListener('click', clearAll);
+    removeWinnerBtn.addEventListener('click', removeWinner);
+    spinBtn.addEventListener('click', spinWheel);
+
+    render();
+  </script>
+</body>
+</html>
